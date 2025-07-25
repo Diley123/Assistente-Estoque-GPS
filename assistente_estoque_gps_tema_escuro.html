@@ -1,0 +1,160 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Assistente Estoque GPS</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: url('https://images.unsplash.com/photo-1616063967160-0f7b3a7b5e2f?auto=format&fit=crop&w=1400&q=80') no-repeat center center fixed;
+            background-size: cover;
+            color: #fff;
+            text-shadow: 1px 1px 2px #000;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .container {
+            background: rgba(0, 0, 0, 0.7);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 0 20px #000;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+        }
+        h1 {
+            margin-bottom: 20px;
+            color: #80cbc4;
+        }
+        input, button {
+            padding: 12px;
+            font-size: 16px;
+            border-radius: 8px;
+            margin-top: 10px;
+            border: none;
+            width: calc(100% - 24px);
+        }
+        input {
+            margin-bottom: 10px;
+        }
+        .mic-button {
+            background-color: #00695c;
+            color: white;
+            cursor: pointer;
+        }
+        .mic-button.listening {
+            background-color: #c62828;
+        }
+        .output {
+            margin-top: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+        }
+        .success { color: #00e676; }
+        .error { color: #ff5252; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Assistente Estoque GPS</h1>
+        <p>Digite ou fale o final do chassi:</p>
+        <input type="text" id="input" placeholder="Ex: 607101">
+        <button class="mic-button" id="micBtn">🎤 Falar</button>
+        <button onclick="consultar()">🔍 Consultar</button>
+        <div id="resultado" class="output"></div>
+    </div>
+
+    <script>
+        const dados = {
+            "514387": "GH-02C",
+            "514390": "GH-02B",
+            "515229": "GH-02B",
+            "607101": "GH-01C",
+            "607106": "GH-01C",
+            "607116": "GH-03C",
+            "607119": "GH-02C",
+            "607124": "GH-02B",
+            "607126": "GH-02B",
+            "607144": "GH-03B",
+            "607150": "GH-01C",
+            "607255": "GH-01C",
+            "607256": "GH-01B",
+            "607257": "GH-03B",
+            "607258": "GH-02C",
+            "607270": "GH-02B",
+            "607276": "GH-01C",
+            "607285": "GH-03B",
+            "607290": "GH-02C",
+            "607302": "GH-01C",
+            "607305": "GH-01B",
+            "607314": "GH-02B",
+            "607315": "GH-01B",
+            "607318": "GH-03B",
+            "607332": "GH-01C"
+        };
+
+        function consultar() {
+            const entrada = document.getElementById('input').value.trim();
+            const resultado = document.getElementById('resultado');
+
+            if (entrada in dados) {
+                resultado.innerHTML = `<p class='success'>✅ O chassi <strong>${entrada}</strong> está na locação <strong>${dados[entrada]}</strong>.</p>`;
+                speak(`O chassi ${entrada} está na locação ${dados[entrada]}`);
+            } else {
+                resultado.innerHTML = `<p class='error'>❌ Chassi ${entrada} não encontrado no estoque.</p>`;
+                speak(`Chassi ${entrada} não encontrado no estoque.`);
+            }
+        }
+
+        function speak(text) {
+            const synth = window.speechSynthesis;
+            const utter = new SpeechSynthesisUtterance(text);
+            utter.lang = "pt-BR";
+            synth.speak(utter);
+        }
+
+        const micBtn = document.getElementById('micBtn');
+        micBtn.addEventListener('click', () => {
+            if (!('webkitSpeechRecognition' in window)) {
+                alert('Reconhecimento de voz não suportado neste navegador.');
+                return;
+            }
+
+            const recognition = new webkitSpeechRecognition();
+            recognition.lang = "pt-BR";
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
+
+            micBtn.classList.add("listening");
+            micBtn.innerText = "🎙️ Ouvindo...";
+
+            recognition.start();
+
+            recognition.onresult = function(event) {
+                const texto = event.results[0][0].transcript.replace(/\D/g, '');
+                document.getElementById('input').value = texto;
+                micBtn.classList.remove("listening");
+                micBtn.innerText = "🎤 Falar";
+                consultar();
+            };
+
+            recognition.onerror = function(event) {
+                document.getElementById('resultado').innerHTML = `<p class='error'>Erro no microfone: ${event.error}</p>`;
+                micBtn.classList.remove("listening");
+                micBtn.innerText = "🎤 Falar";
+            };
+
+            recognition.onend = () => {
+                micBtn.classList.remove("listening");
+                micBtn.innerText = "🎤 Falar";
+            };
+        });
+    </script>
+</body>
+</html>
