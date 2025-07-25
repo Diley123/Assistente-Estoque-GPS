@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Assistente GPS por Voz</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #f9f9f9;
+      text-align: center;
+      padding: 50px;
+    }
+    button {
+      font-size: 20px;
+      padding: 15px 30px;
+      background: #2a9d8f;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+    #response {
+      margin-top: 40px;
+      font-size: 24px;
+      color: #333;
+    }
+  </style>
+</head>
+<body>
+  <h1>Assistente de Estoque GPS</h1>
+  <p>Toque no botão e pergunte pelo número do chassi</p>
+  <button onclick="startListening()">🎤 Falar agora</button>
+  <div id="response"></div>
+
+  <script>
+    const sheetURL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRjdcCsdA1To1aaPxSKoK-ymDnHo5O6gRWT5TyFVcNO5Bo9XjfgB6tUSNmMlMOv7LQCTvFzY7-E0xGp/pub?gid=0&single=true&output=csv';
+
+    async function fetchSheetData() {
+      const res = await fetch(sheetURL);
+      const text = await res.text();
+      const rows = text.trim().split('\n').map(row => row.split(','));
+      return rows;
+    }
+
+    function speak(text) {
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.lang = 'pt-BR';
+      speechSynthesis.speak(utter);
+    }
+
+    async function startListening() {
+      const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+      recognition.lang = 'pt-BR';
+
+      recognition.start();
+      document.getElementById('response').innerText = 'Ouvindo...';
+
+      recognition.onresult = async (event) => {
+        const transcript = event.results[0][0].transcript;
+        const spokenChassi = transcript.replace(/[^0-9]/g, '').slice(-5); // extrai últimos dígitos
+        const data = await fetchSheetData();
+
+        let found = false;
+        for (let i = 1; i < data.length; i++) {
+          const chassi = data[i][1];
+          if (chassi.endsWith(spokenChassi)) {
+            const locacao = data[i][0];
+            const responseText = `O chassi ${chassi} está na locação ${locacao}`;
+            document.getElementById('response').innerText = responseText;
+            speak(responseText);
+            found = true;
+            break;
+          }
+        }
+
+        if (!found) {
+          const msg = 'Não encontrei este chassi no estoque';
+          document.getElementById('response').innerText = msg;
+          speak(msg);
+        }
+      };
+
+      recognition.onerror = () => {
+        const msg = 'Não consegui te ouvir, tente novamente';
+        document.getElementById('response').innerText = msg;
+        speak(msg);
+      }
+    }
+  </script>
+</body>
+</html>
